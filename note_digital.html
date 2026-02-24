@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Note Digital</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --white: #ffffff;
+      --off-white: #f5f5f3;
+      --light-gray: #e8e8e6;
+      --mid-gray: #b0b0ae;
+      --dark-gray: #3a3a38;
+      --black: #0f0f0e;
+      --accent: #1a1a18;
+      --shadow: rgba(0,0,0,0.08);
+      --shadow-lg: rgba(0,0,0,0.16);
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'DM Sans', sans-serif;
+      background: var(--off-white);
+      color: var(--black);
+      overflow-x: hidden;
+    }
+
+    /* ---- NOISE OVERLAY ---- */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      background-size: 180px;
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.5;
+    }
+
+    /* ---- SCREEN SYSTEM ---- */
+    .screen {
+      display: none;
+      position: fixed;
+      inset: 0;
+      overflow-y: auto;
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+                  transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .screen.active {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    .screen.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ---- HEADER BAR ---- */
+    .topbar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 36px;
+      background: rgba(245,245,243,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--light-gray);
+    }
+    .topbar-logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: var(--black);
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .topbar-logo:hover { opacity: 0.6; }
+
+    /* ---- HOME SCREEN ---- */
+    #screen-home {
+      padding-top: 100px;
+      min-height: 100vh;
+    }
+    .home-inner {
+      width: 100%;
+      max-width: 700px;
+      margin: auto;
+      padding: 60px 24px 80px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0;
+    }
+    .home-label {
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--mid-gray);
+      margin-bottom: 16px;
+      animation: fadeUp 0.6s 0.1s both;
+    }
+    .home-title {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(3.5rem, 8vw, 6rem);
+      font-weight: 900;
+      line-height: 0.95;
+      letter-spacing: -0.02em;
+      color: var(--black);
+      margin-bottom: 28px;
+      animation: fadeUp 0.6s 0.2s both;
+    }
+    .home-title span {
+      display: block;
+      color: var(--mid-gray);
+    }
+    .home-desc {
+      font-size: 1rem;
+      line-height: 1.7;
+      color: var(--dark-gray);
+      max-width: 420px;
+      margin-bottom: 52px;
+      font-weight: 300;
+      animation: fadeUp 0.6s 0.3s both;
+    }
+    .home-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      width: 100%;
+      max-width: 320px;
+      animation: fadeUp 0.6s 0.4s both;
+    }
+
+    /* ---- BUTTONS ---- */
+    .btn-primary {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 16px 28px;
+      background: var(--black);
+      color: var(--white);
+      border: 2px solid var(--black);
+      border-radius: 12px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: background 0.25s, color 0.25s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-primary::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--white);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px var(--shadow-lg);
+    }
+    .btn-primary:active { transform: translateY(0px); }
+
+    .btn-secondary {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 16px 28px;
+      background: transparent;
+      color: var(--black);
+      border: 2px solid var(--black);
+      border-radius: 12px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: background 0.25s, color 0.25s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s;
+    }
+    .btn-secondary:hover {
+      background: var(--black);
+      color: var(--white);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px var(--shadow-lg);
+    }
+    .btn-secondary:active { transform: translateY(0px); }
+
+    .btn-sm {
+      padding: 12px 24px;
+      font-size: 0.85rem;
+      border-radius: 10px;
+    }
+
+    /* ---- NAME SCREEN ---- */
+    #screen-name {
+      min-height: 100vh;
+      padding-top: 80px;
+      justify-content: center;
+    }
+    .form-card {
+      width: 100%;
+      max-width: 480px;
+      margin: auto;
+      padding: 48px 40px;
+      background: var(--white);
+      border: 1.5px solid var(--light-gray);
+      border-radius: 24px;
+      box-shadow: 0 4px 40px var(--shadow);
+      margin: 24px;
+    }
+    .form-step-label {
+      font-size: 0.65rem;
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--mid-gray);
+      margin-bottom: 12px;
+    }
+    .form-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--black);
+      margin-bottom: 8px;
+      line-height: 1.2;
+    }
+    .form-subtitle {
+      font-size: 0.88rem;
+      color: var(--mid-gray);
+      margin-bottom: 36px;
+    }
+    .input-wrap {
+      position: relative;
+      margin-bottom: 24px;
+    }
+    .input-field {
+      width: 100%;
+      padding: 16px 20px;
+      border: 2px solid var(--light-gray);
+      border-radius: 12px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 1rem;
+      color: var(--black);
+      background: var(--off-white);
+      outline: none;
+      transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
+    }
+    .input-field:focus {
+      border-color: var(--black);
+      background: var(--white);
+      box-shadow: 0 0 0 4px rgba(0,0,0,0.06);
+    }
+    .input-field::placeholder { color: var(--mid-gray); }
+
+    /* ---- WRITE SCREEN ---- */
+    #screen-write {
+      min-height: 100vh;
+      padding-top: 80px;
+      justify-content: center;
+    }
+    .write-card {
+      width: 100%;
+      max-width: 640px;
+      margin: 24px;
+      padding: 48px 40px;
+      background: var(--white);
+      border: 1.5px solid var(--light-gray);
+      border-radius: 24px;
+      box-shadow: 0 4px 40px var(--shadow);
+    }
+    .write-greeting {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 99px;
+      background: var(--off-white);
+      border: 1px solid var(--light-gray);
+      font-size: 0.78rem;
+      color: var(--dark-gray);
+      margin-bottom: 24px;
+    }
+    .write-greeting-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--black);
+    }
+    .note-label {
+      font-size: 0.65rem;
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--mid-gray);
+      margin-bottom: 10px;
+    }
+    .note-box-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--black);
+      margin-bottom: 14px;
+    }
+    .note-textarea {
+      width: 100%;
+      min-height: 200px;
+      padding: 20px;
+      border: 2px solid var(--black);
+      border-radius: 16px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem;
+      line-height: 1.7;
+      color: var(--black);
+      background: var(--off-white);
+      outline: none;
+      resize: vertical;
+      transition: box-shadow 0.25s, background 0.25s;
+    }
+    .note-textarea:focus {
+      background: var(--white);
+      box-shadow: 0 0 0 4px rgba(0,0,0,0.06);
+    }
+    .note-textarea::placeholder { color: var(--mid-gray); }
+    .write-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .char-count {
+      font-size: 0.75rem;
+      color: var(--mid-gray);
+      text-align: right;
+      margin-top: 8px;
+    }
+    .btn-disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    /* ---- LIST SCREEN ---- */
+    #screen-list {
+      min-height: 100vh;
+      padding-top: 80px;
+    }
+    .list-inner {
+      width: 100%;
+      max-width: 700px;
+      margin: auto;
+      padding: 60px 24px 80px;
+    }
+    .list-header {
+      margin-bottom: 40px;
+    }
+    .list-header .form-step-label { margin-bottom: 10px; }
+    .list-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.4rem;
+      font-weight: 700;
+      color: var(--black);
+      margin-bottom: 6px;
+    }
+    .list-count {
+      font-size: 0.85rem;
+      color: var(--mid-gray);
+    }
+
+    .notes-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .note-card {
+      background: var(--white);
+      border: 1.5px solid var(--light-gray);
+      border-radius: 18px;
+      padding: 28px 32px;
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  box-shadow 0.25s,
+                  border-color 0.25s;
+      animation: slideIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+      cursor: default;
+    }
+    .note-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px var(--shadow-lg);
+      border-color: var(--dark-gray);
+    }
+    .note-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .note-author {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .author-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--black);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--white);
+      letter-spacing: 0.04em;
+      flex-shrink: 0;
+    }
+    .author-info {}
+    .author-name {
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: var(--black);
+    }
+    .note-time {
+      font-size: 0.72rem;
+      color: var(--mid-gray);
+    }
+    .note-text {
+      font-size: 0.92rem;
+      line-height: 1.75;
+      color: var(--dark-gray);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 80px 24px;
+    }
+    .empty-icon {
+      font-size: 3rem;
+      margin-bottom: 16px;
+      opacity: 0.25;
+    }
+    .empty-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.4rem;
+      color: var(--dark-gray);
+      margin-bottom: 8px;
+    }
+    .empty-sub {
+      font-size: 0.85rem;
+      color: var(--mid-gray);
+    }
+
+    /* ---- DIVIDER ---- */
+    .divider {
+      width: 48px;
+      height: 2px;
+      background: var(--light-gray);
+      margin: 32px 0;
+    }
+
+    /* ---- TOAST ---- */
+    #toast {
+      position: fixed;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--black);
+      color: var(--white);
+      padding: 14px 24px;
+      border-radius: 99px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      z-index: 9000;
+      opacity: 0;
+      transition: opacity 0.3s, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      white-space: nowrap;
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ---- LOADER ---- */
+    .loader {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 60px;
+    }
+    .loader-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--black);
+      animation: bounce 0.9s ease-in-out infinite;
+    }
+    .loader-dot:nth-child(2) { animation-delay: 0.15s; }
+    .loader-dot:nth-child(3) { animation-delay: 0.3s; }
+
+    /* ---- KEYFRAMES ---- */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes bounce {
+      0%, 80%, 100% { transform: translateY(0); }
+      40% { transform: translateY(-10px); }
+    }
+
+    /* ---- BACK BUTTON ---- */
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      color: var(--mid-gray);
+      cursor: pointer;
+      transition: color 0.2s;
+      border: none;
+      background: none;
+      font-family: 'DM Sans', sans-serif;
+      padding: 0;
+      margin-bottom: 12px;
+    }
+    .back-btn:hover { color: var(--black); }
+
+    /* ---- FOOTER DECORATION ---- */
+    .home-deco {
+      position: fixed;
+      bottom: -120px;
+      right: -80px;
+      width: 400px;
+      height: 400px;
+      border-radius: 50%;
+      border: 60px solid var(--light-gray);
+      opacity: 0.5;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-logo" onclick="goHome()">Note Digital</div>
+</div>
+
+<!-- HOME SCREEN -->
+<div class="screen active" id="screen-home">
+  <div class="home-inner">
+    <div class="home-label">Platform Berbagi Pikiran</div>
+    <h1 class="home-title">Note<span>Digital.</span></h1>
+    <p class="home-desc">Tulis apa yang ada di pikiranmu. Bagikan ke dunia. Baca catatan dari orang-orang di sekitarmu.</p>
+    <div class="home-buttons">
+      <button class="btn-primary" onclick="goToName()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        Tulis Note
+      </button>
+      <button class="btn-secondary" onclick="goToList()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+        Lihat Note Buatan Orang
+      </button>
+    </div>
+  </div>
+  <div class="home-deco"></div>
+</div>
+
+<!-- NAME SCREEN -->
+<div class="screen" id="screen-name">
+  <div class="form-card">
+    <button class="back-btn" onclick="goHome()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Kembali
+    </button>
+    <div class="divider" style="margin:16px 0 24px"></div>
+    <div class="form-step-label">Langkah 1 dari 2</div>
+    <h2 class="form-title">Siapa namamu?</h2>
+    <p class="form-subtitle">Nama ini akan ditampilkan bersama note-mu.</p>
+    <div class="input-wrap">
+      <input class="input-field" id="name-input" type="text" placeholder="Masukkan namamu..." maxlength="50" autocomplete="off" />
+    </div>
+    <button class="btn-primary" id="name-submit-btn" onclick="submitName()">
+      Lanjut
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- WRITE SCREEN -->
+<div class="screen" id="screen-write">
+  <div class="write-card">
+    <button class="back-btn" onclick="goToName()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Kembali
+    </button>
+    <div class="divider" style="margin:16px 0 24px"></div>
+    <div class="write-greeting" id="write-greeting">
+      <div class="write-greeting-dot"></div>
+      <span id="greeting-name">Halo, Anon!</span>
+    </div>
+    <div class="form-step-label">Langkah 2 dari 2</div>
+    <div class="note-box-title">Masukkan Note mu!</div>
+    <textarea class="note-textarea" id="note-textarea" placeholder="Tuliskan apa pun yang ada di pikiranmu..." maxlength="1000" oninput="onNoteInput()"></textarea>
+    <div class="char-count"><span id="char-num">0</span> / 1000</div>
+    <div class="write-actions">
+      <button class="btn-secondary btn-sm" onclick="goHome()" style="flex:1">Batal</button>
+      <button class="btn-primary btn-sm btn-disabled" id="submit-note-btn" onclick="submitNote()" style="flex:2">
+        Kirim Note
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- LIST SCREEN -->
+<div class="screen" id="screen-list">
+  <div class="list-inner">
+    <button class="back-btn" onclick="goHome()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Kembali ke Menu
+    </button>
+    <div class="list-header" style="margin-top:20px">
+      <div class="form-step-label">Komunitas</div>
+      <h2 class="list-title">Note dari Semua Orang</h2>
+      <div class="list-count" id="list-count">Memuat...</div>
+    </div>
+    <div class="notes-grid" id="notes-grid">
+      <div class="loader">
+        <div class="loader-dot"></div>
+        <div class="loader-dot"></div>
+        <div class="loader-dot"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+  // =====================
+  // STORAGE (using window.storage if available, else localStorage fallback for standalone HTML)
+  // =====================
+  const STORAGE_KEY = 'note-digital-notes';
+
+  async function loadNotes() {
+    try {
+      if (window.storage) {
+        const result = await window.storage.get(STORAGE_KEY, true);
+        return result ? JSON.parse(result.value) : [];
+      } else {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : [];
+      }
+    } catch { return []; }
+  }
+
+  async function saveNotes(notes) {
+    try {
+      if (window.storage) {
+        await window.storage.set(STORAGE_KEY, JSON.stringify(notes), true);
+      } else {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+      }
+    } catch(e) { console.error(e); }
+  }
+
+  // =====================
+  // SCREEN NAVIGATION
+  // =====================
+  let currentScreen = 'screen-home';
+
+  function showScreen(id) {
+    const prev = document.getElementById(currentScreen);
+    const next = document.getElementById(id);
+
+    if (prev) {
+      prev.classList.remove('visible');
+      setTimeout(() => {
+        prev.classList.remove('active');
+      }, 500);
+    }
+
+    currentScreen = id;
+    next.classList.add('active');
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        next.classList.add('visible');
+      });
+    });
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function goHome() {
+    showScreen('screen-home');
+  }
+
+  function goToName() {
+    showScreen('screen-name');
+    setTimeout(() => {
+      document.getElementById('name-input').focus();
+    }, 600);
+  }
+
+  function goToList() {
+    showScreen('screen-list');
+    renderNotes();
+  }
+
+  // Init home visible
+  setTimeout(() => {
+    document.getElementById('screen-home').classList.add('visible');
+  }, 50);
+
+  // =====================
+  // NAME STEP
+  // =====================
+  let userName = '';
+
+  document.getElementById('name-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') submitName();
+  });
+
+  function submitName() {
+    const val = document.getElementById('name-input').value.trim();
+    if (!val) {
+      shakeElement('name-input');
+      return;
+    }
+    userName = val;
+    document.getElementById('greeting-name').textContent = `Halo, ${userName}!`;
+    document.getElementById('note-textarea').value = '';
+    document.getElementById('char-num').textContent = '0';
+    document.getElementById('submit-note-btn').classList.add('btn-disabled');
+    showScreen('screen-write');
+    setTimeout(() => document.getElementById('note-textarea').focus(), 600);
+  }
+
+  // =====================
+  // NOTE STEP
+  // =====================
+  function onNoteInput() {
+    const val = document.getElementById('note-textarea').value;
+    document.getElementById('char-num').textContent = val.length;
+    const btn = document.getElementById('submit-note-btn');
+    if (val.trim().length > 0) {
+      btn.classList.remove('btn-disabled');
+    } else {
+      btn.classList.add('btn-disabled');
+    }
+  }
+
+  async function submitNote() {
+    const text = document.getElementById('note-textarea').value.trim();
+    if (!text) return;
+
+    const btn = document.getElementById('submit-note-btn');
+    btn.textContent = 'Menyimpan...';
+    btn.classList.add('btn-disabled');
+
+    const notes = await loadNotes();
+    const newNote = {
+      id: Date.now(),
+      author: userName,
+      text: text,
+      time: new Date().toISOString()
+    };
+    notes.unshift(newNote);
+    await saveNotes(notes);
+
+    showToast('Note berhasil dikirim! ✓');
+    goHome();
+    document.getElementById('name-input').value = '';
+    userName = '';
+  }
+
+  // =====================
+  // RENDER NOTES
+  // =====================
+  async function renderNotes() {
+    const grid = document.getElementById('notes-grid');
+    grid.innerHTML = `<div class="loader">
+      <div class="loader-dot"></div>
+      <div class="loader-dot"></div>
+      <div class="loader-dot"></div>
+    </div>`;
+
+    const notes = await loadNotes();
+    document.getElementById('list-count').textContent = notes.length === 0 ? 'Belum ada note' : `${notes.length} note tersimpan`;
+
+    if (notes.length === 0) {
+      grid.innerHTML = `<div class="empty-state">
+        <div class="empty-icon">📝</div>
+        <div class="empty-title">Belum ada note</div>
+        <div class="empty-sub">Jadilah yang pertama menulis note!</div>
+      </div>`;
+      return;
+    }
+
+    grid.innerHTML = '';
+    notes.forEach((note, i) => {
+      const card = document.createElement('div');
+      card.className = 'note-card';
+      card.style.animationDelay = `${i * 0.06}s`;
+
+      const initials = note.author.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+      const timeStr = formatTime(note.time);
+
+      card.innerHTML = `
+        <div class="note-card-header">
+          <div class="note-author">
+            <div class="author-avatar">${initials}</div>
+            <div class="author-info">
+              <div class="author-name">${escapeHtml(note.author)}</div>
+              <div class="note-time">${timeStr}</div>
+            </div>
+          </div>
+        </div>
+        <div class="note-text">${escapeHtml(note.text)}</div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  function formatTime(iso) {
+    try {
+      const d = new Date(iso);
+      return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    } catch { return ''; }
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // =====================
+  // HELPERS
+  // =====================
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  function shakeElement(id) {
+    const el = document.getElementById(id);
+    el.style.animation = 'none';
+    el.style.borderColor = '#888';
+    setTimeout(() => {
+      el.style.borderColor = '';
+      el.style.animation = '';
+    }, 600);
+    el.focus();
+  }
+</script>
+</body>
+</html>
