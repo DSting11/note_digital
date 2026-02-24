@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Note Digital</title>
+  <title>Pesan Digital</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -564,23 +564,23 @@
 
 <!-- TOP BAR -->
 <div class="topbar">
-  <div class="topbar-logo" onclick="goHome()">Note Digital</div>
+  <div class="topbar-logo" onclick="goHome()">Pesan Digital</div>
 </div>
 
 <!-- HOME SCREEN -->
 <div class="screen active" id="screen-home">
   <div class="home-inner">
     <div class="home-label">Platform Berbagi Pikiran</div>
-    <h1 class="home-title">Note<span>Digital.</span></h1>
-    <p class="home-desc">Tulis apa yang ada di pikiranmu. Bagikan ke dunia. Baca catatan dari orang-orang di sekitarmu.</p>
+    <h1 class="home-title">Pesan<span>Digital.</span></h1>
+    <p class="home-desc">Tulis apa yang ada di pikiranmu. Bagikan ke dunia. Baca pesan dari orang-orang di sekitarmu.</p>
     <div class="home-buttons">
       <button class="btn-primary" onclick="goToName()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-        Tulis Note
+        Tulis Pesan
       </button>
       <button class="btn-secondary" onclick="goToList()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
-        Lihat Note Buatan Orang
+        Lihat Pesan Buatan Orang
       </button>
     </div>
   </div>
@@ -597,7 +597,7 @@
     <div class="divider" style="margin:16px 0 24px"></div>
     <div class="form-step-label">Langkah 1 dari 2</div>
     <h2 class="form-title">Siapa namamu?</h2>
-    <p class="form-subtitle">Nama ini akan ditampilkan bersama note-mu.</p>
+    <p class="form-subtitle">Nama ini akan ditampilkan bersama pesanmu.</p>
     <div class="input-wrap">
       <input class="input-field" id="name-input" type="text" placeholder="Masukkan namamu..." maxlength="50" autocomplete="off" />
     </div>
@@ -621,13 +621,13 @@
       <span id="greeting-name">Halo, Anon!</span>
     </div>
     <div class="form-step-label">Langkah 2 dari 2</div>
-    <div class="note-box-title">Masukkan Note mu!</div>
+    <div class="note-box-title">Masukkan Pesanmu!</div>
     <textarea class="note-textarea" id="note-textarea" placeholder="Tuliskan apa pun yang ada di pikiranmu..." maxlength="1000" oninput="onNoteInput()"></textarea>
     <div class="char-count"><span id="char-num">0</span> / 1000</div>
     <div class="write-actions">
       <button class="btn-secondary btn-sm" onclick="goHome()" style="flex:1">Batal</button>
       <button class="btn-primary btn-sm btn-disabled" id="submit-note-btn" onclick="submitNote()" style="flex:2">
-        Kirim Note
+        Kirim Pesan
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
       </button>
     </div>
@@ -643,7 +643,7 @@
     </button>
     <div class="list-header" style="margin-top:20px">
       <div class="form-step-label">Komunitas</div>
-      <h2 class="list-title">Note dari Semua Orang</h2>
+      <h2 class="list-title">Pesan dari Semua Orang</h2>
       <div class="list-count" id="list-count">Memuat...</div>
     </div>
     <div class="notes-grid" id="notes-grid">
@@ -663,7 +663,7 @@
   // =====================
   // STORAGE (using window.storage if available, else localStorage fallback for standalone HTML)
   // =====================
-  const STORAGE_KEY = 'note-digital-notes';
+  const STORAGE_KEY = 'pesan-digital-pesans';
 
   async function loadNotes() {
     try {
@@ -791,7 +791,7 @@
     notes.unshift(newNote);
     await saveNotes(notes);
 
-    showToast('Note berhasil dikirim! ✓');
+    showToast('Pesan berhasil dikirim! ✓');
     goHome();
     document.getElementById('name-input').value = '';
     userName = '';
@@ -809,13 +809,13 @@
     </div>`;
 
     const notes = await loadNotes();
-    document.getElementById('list-count').textContent = notes.length === 0 ? 'Belum ada note' : `${notes.length} note tersimpan`;
+    document.getElementById('list-count').textContent = notes.length === 0 ? 'Belum ada pesan' : `${notes.length} pesan tersimpan`;
 
     if (notes.length === 0) {
       grid.innerHTML = `<div class="empty-state">
         <div class="empty-icon">📝</div>
-        <div class="empty-title">Belum ada note</div>
-        <div class="empty-sub">Jadilah yang pertama menulis note!</div>
+        <div class="empty-title">Belum ada pesan</div>
+        <div class="empty-sub">Jadilah yang pertama menulis pesan!</div>
       </div>`;
       return;
     }
