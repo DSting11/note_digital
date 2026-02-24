@@ -1,881 +1,753 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pesan Digital</title>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no"/>
+<title>Pesan Digital</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Playfair+Display:ital,wght@0,600;1,600&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ease:cubic-bezier(.22,1,.36,1); --spring:cubic-bezier(.34,1.56,.64,1);
+  --c2:#e2e2e2; --c3:#b5b5b5; --c4:#888; --c5:#444; --c6:#1a1a1a; --c7:#0a0a0a;
+  --surf:rgba(255,255,255,.85); --bord:rgba(255,255,255,.9);
+  --bg-gradient: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+}
+html,body{height:100%;font-family:'Montserrat',sans-serif;color:var(--c7);overflow-x:hidden;-webkit-font-smoothing:antialiased;background:var(--bg-gradient);}
+canvas#bg-anim{position:fixed;inset:0;z-index:0;display:block;opacity:0.6;pointer-events:none;}
 
-    :root {
-      --white: #ffffff;
-      --off-white: #f5f5f3;
-      --light-gray: #e8e8e6;
-      --mid-gray: #b0b0ae;
-      --dark-gray: #3a3a38;
-      --black: #0f0f0e;
-      --accent: #1a1a18;
-      --shadow: rgba(0,0,0,0.08);
-      --shadow-lg: rgba(0,0,0,0.16);
-    }
+/* TOPBAR */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:300;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;background:rgba(255,255,255,.7);backdrop-filter:blur(18px);border-bottom:1px solid rgba(0,0,0,.05);}
+.tb-l{display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;}
+.tb-ico{width:26px;height:26px;border-radius:6px;background:var(--c7);display:flex;align-items:center;justify-content:center;color:#fff;}
+.tb-nm{font-size:.85rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;}
+.tb-user{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.04);padding:4px 10px 4px 4px;border-radius:99px;}
+.tb-av{width:24px;height:24px;border-radius:50%;background:var(--c3);background-size:cover;background-position:center;}
+.tb-uname{font-size:.7rem;font-weight:600;}
 
-    html, body {
-      height: 100%;
-      font-family: 'DM Sans', sans-serif;
-      background: var(--off-white);
-      color: var(--black);
-      overflow-x: hidden;
-    }
+/* SCREENS */
+.screen{display:none;position:fixed;inset:0;overflow-y:auto;overflow-x:hidden;padding-top:56px;z-index:1;opacity:0;transition:opacity .3s var(--ease),transform .3s var(--ease)}
+.screen.active{display:flex;flex-direction:column;align-items:center}
+.screen.visible{opacity:1!important;transform:none!important}
+.page{width:100%;max-width:600px;padding:24px 16px 80px;margin:0 auto}
 
-    /* ---- NOISE OVERLAY ---- */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-      background-size: 180px;
-      pointer-events: none;
-      z-index: 9999;
-      opacity: 0.5;
-    }
+/* UTILS & CARDS */
+.fcard{background:var(--surf);border:1px solid var(--bord);border-radius:20px;padding:28px 24px;backdrop-filter:blur(20px);box-shadow:0 8px 32px rgba(0,0,0,.06);margin-bottom:16px;}
+.fcard-h{font-size:1.3rem;font-weight:700;margin-bottom:6px;letter-spacing:-.01em;}
+.fcard-sub{font-size:.8rem;color:var(--c5);margin-bottom:20px;line-height:1.6;}
+.flabel{display:block;font-size:.65rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--c4);margin-bottom:6px}
+.finput{width:100%;padding:12px 14px;border:1.5px solid rgba(0,0,0,.1);border-radius:10px;font-family:inherit;font-size:.9rem;background:rgba(255,255,255,.8);outline:none;transition:all .2s;margin-bottom:16px}
+.finput:focus{border-color:var(--c7);box-shadow:0 0 0 3px rgba(0,0,0,.05)}
 
-    /* ---- SCREEN SYSTEM ---- */
-    .screen {
-      display: none;
-      position: fixed;
-      inset: 0;
-      overflow-y: auto;
-      opacity: 0;
-      transform: translateY(24px);
-      transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1),
-                  transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
-    }
-    .screen.active {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-    }
-    .screen.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 20px;border-radius:10px;font-family:inherit;font-size:.8rem;font-weight:700;letter-spacing:.03em;cursor:pointer;border:1.5px solid transparent;transition:all .2s;white-space:nowrap}
+.btn:active{transform:scale(.96)}
+.btn[disabled]{opacity:.4;pointer-events:none}
+.btn-solid{background:var(--c7);color:#fff;border-color:var(--c7)}
+.btn-solid:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.15)}
+.btn-out{background:rgba(255,255,255,.6);color:var(--c7);border-color:rgba(0,0,0,.15)}
+.btn-out:hover{background:#fff;border-color:var(--c5);transform:translateY(-2px)}
+.btn-ghost{background:transparent;color:var(--c5);border-color:transparent;}
+.btn-ghost:hover{background:rgba(0,0,0,.05);color:var(--c7)}
+.btn-full{width:100%}
 
-    /* ---- HEADER BAR ---- */
-    .topbar {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      z-index: 100;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 18px 36px;
-      background: rgba(245,245,243,0.85);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--light-gray);
-    }
-    .topbar-logo {
-      font-family: 'Playfair Display', serif;
-      font-size: 1.1rem;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      color: var(--black);
-      cursor: pointer;
-      transition: opacity 0.2s;
-    }
-    .topbar-logo:hover { opacity: 0.6; }
+/* AVATAR UPLOAD */
+.av-up-zone{width:90px;height:90px;border-radius:50%;border:2px dashed rgba(0,0,0,.2);margin:0 auto 20px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden;background:rgba(0,0,0,.02);transition:all .2s;}
+.av-up-zone:hover{background:rgba(0,0,0,.05);border-color:var(--c5);}
+.av-up-zone img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;display:none;}
+.av-up-zone.has-img img{display:block;}
+.av-up-zone.has-img svg{display:none;}
 
-    /* ---- HOME SCREEN ---- */
-    #screen-home {
-      padding-top: 100px;
-      min-height: 100vh;
-    }
-    .home-inner {
-      width: 100%;
-      max-width: 700px;
-      margin: auto;
-      padding: 60px 24px 80px;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 0;
-    }
-    .home-label {
-      font-size: 0.7rem;
-      font-weight: 500;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--mid-gray);
-      margin-bottom: 16px;
-      animation: fadeUp 0.6s 0.1s both;
-    }
-    .home-title {
-      font-family: 'Playfair Display', serif;
-      font-size: clamp(3.5rem, 8vw, 6rem);
-      font-weight: 900;
-      line-height: 0.95;
-      letter-spacing: -0.02em;
-      color: var(--black);
-      margin-bottom: 28px;
-      animation: fadeUp 0.6s 0.2s both;
-    }
-    .home-title span {
-      display: block;
-      color: var(--mid-gray);
-    }
-    .home-desc {
-      font-size: 1rem;
-      line-height: 1.7;
-      color: var(--dark-gray);
-      max-width: 420px;
-      margin-bottom: 52px;
-      font-weight: 300;
-      animation: fadeUp 0.6s 0.3s both;
-    }
-    .home-buttons {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      width: 100%;
-      max-width: 320px;
-      animation: fadeUp 0.6s 0.4s both;
-    }
+/* HOME GRID */
+.home-opts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;}
+.opt-card{background:linear-gradient(145deg, rgba(255,255,255,0.9), rgba(255,255,255,0.5));border:1px solid rgba(0,0,0,.08);border-radius:16px;padding:24px 16px;text-align:center;cursor:pointer;transition:all .2s var(--spring);}
+.opt-card:hover{transform:translateY(-4px);box-shadow:0 12px 24px rgba(0,0,0,.08);border-color:rgba(0,0,0,.15);}
+.opt-ico{width:48px;height:48px;border-radius:12px;background:var(--c7);color:#fff;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;}
+.opt-t{font-size:.9rem;font-weight:700;}
+.opt-p{font-size:.7rem;color:var(--c5);margin-top:6px;line-height:1.4;}
 
-    /* ---- BUTTONS ---- */
-    .btn-primary {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      width: 100%;
-      padding: 16px 28px;
-      background: var(--black);
-      color: var(--white);
-      border: 2px solid var(--black);
-      border-radius: 12px;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.9rem;
-      font-weight: 500;
-      letter-spacing: 0.02em;
-      cursor: pointer;
-      transition: background 0.25s, color 0.25s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s;
-      position: relative;
-      overflow: hidden;
-    }
-    .btn-primary::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: var(--white);
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 28px var(--shadow-lg);
-    }
-    .btn-primary:active { transform: translateY(0px); }
+/* TEXT POST EDITOR */
+.bg-opts{display:flex;gap:8px;overflow-x:auto;padding-bottom:10px;margin-bottom:16px;}
+.bg-btn{width:36px;height:36px;border-radius:50%;border:2px solid transparent;cursor:pointer;flex-shrink:0;transition:transform .2s;}
+.bg-btn:hover{transform:scale(1.1);}
+.bg-btn.on{border-color:var(--c7);transform:scale(1.1);box-shadow:0 0 0 2px #fff inset;}
+.text-prev-box{width:100%;min-height:200px;border-radius:16px;padding:30px;display:flex;align-items:center;justify-content:center;text-align:center;margin-bottom:16px;transition:background .3s;box-shadow:0 4px 16px rgba(0,0,0,.1);}
+.text-prev-box textarea{width:100%;background:transparent;border:none;outline:none;color:#fff;font-size:1.4rem;font-weight:600;text-align:center;resize:none;font-family:inherit;}
+.text-prev-box textarea::placeholder{color:rgba(255,255,255,.6);}
 
-    .btn-secondary {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      width: 100%;
-      padding: 16px 28px;
-      background: transparent;
-      color: var(--black);
-      border: 2px solid var(--black);
-      border-radius: 12px;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.9rem;
-      font-weight: 500;
-      letter-spacing: 0.02em;
-      cursor: pointer;
-      transition: background 0.25s, color 0.25s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s;
-    }
-    .btn-secondary:hover {
-      background: var(--black);
-      color: var(--white);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 28px var(--shadow-lg);
-    }
-    .btn-secondary:active { transform: translateY(0px); }
+/* IMAGE POST EDITOR */
+.canvas-wrap{position:relative;width:100%;border-radius:12px;overflow:hidden;background:#e5e5e5;box-shadow:0 4px 16px rgba(0,0,0,.1);margin-bottom:16px;}
+.canvas-wrap canvas{display:block;width:100%;height:auto;touch-action:none;}
+.tools-row{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.tb-btn{padding:8px 12px;border-radius:8px;border:1.5px solid rgba(0,0,0,.1);background:rgba(255,255,255,.8);font-size:.7rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s;}
+.tb-btn:hover{background:#fff;border-color:var(--c5);}
+.tb-btn.on{background:var(--c7);color:#fff;border-color:var(--c7);}
+.color-picker{display:flex;gap:6px;margin-left:auto;}
+.c-dot{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;}
+.c-dot.on{border-color:#fff;box-shadow:0 0 0 2px var(--c7);}
+.caption-area{width:100%;min-height:80px;resize:none;padding:12px;border-radius:10px;border:1.5px solid rgba(0,0,0,.1);font-family:inherit;font-size:.85rem;outline:none;margin-bottom:16px;}
 
-    .btn-sm {
-      padding: 12px 24px;
-      font-size: 0.85rem;
-      border-radius: 10px;
-    }
+/* LIST / FEED */
+.feed-grid{display:flex;flex-direction:column;gap:20px;}
+.post-card{background:var(--surf);border:1px solid var(--bord);border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.04);backdrop-filter:blur(10px);}
+.pc-hdr{padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(0,0,0,.04);}
+.pc-av{width:34px;height:34px;border-radius:50%;background-size:cover;background-position:center;background-color:var(--c2);}
+.pc-info{flex:1;}
+.pc-name{font-size:.85rem;font-weight:700;color:var(--c7);}
+.pc-time{font-size:.65rem;color:var(--c4);}
 
-    /* ---- NAME SCREEN ---- */
-    #screen-name {
-      min-height: 100vh;
-      padding-top: 80px;
-      justify-content: center;
-    }
-    .form-card {
-      width: 100%;
-      max-width: 480px;
-      margin: auto;
-      padding: 48px 40px;
-      background: var(--white);
-      border: 1.5px solid var(--light-gray);
-      border-radius: 24px;
-      box-shadow: 0 4px 40px var(--shadow);
-      margin: 24px;
-    }
-    .form-step-label {
-      font-size: 0.65rem;
-      font-weight: 500;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--mid-gray);
-      margin-bottom: 12px;
-    }
-    .form-title {
-      font-family: 'Playfair Display', serif;
-      font-size: 1.8rem;
-      font-weight: 700;
-      color: var(--black);
-      margin-bottom: 8px;
-      line-height: 1.2;
-    }
-    .form-subtitle {
-      font-size: 0.88rem;
-      color: var(--mid-gray);
-      margin-bottom: 36px;
-    }
-    .input-wrap {
-      position: relative;
-      margin-bottom: 24px;
-    }
-    .input-field {
-      width: 100%;
-      padding: 16px 20px;
-      border: 2px solid var(--light-gray);
-      border-radius: 12px;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 1rem;
-      color: var(--black);
-      background: var(--off-white);
-      outline: none;
-      transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
-    }
-    .input-field:focus {
-      border-color: var(--black);
-      background: var(--white);
-      box-shadow: 0 0 0 4px rgba(0,0,0,0.06);
-    }
-    .input-field::placeholder { color: var(--mid-gray); }
+/* Text Post Type */
+.pc-text-box{padding:40px 20px;text-align:center;color:#fff;font-size:1.3rem;font-weight:600;min-height:180px;display:flex;align-items:center;justify-content:center;word-break:break-word;}
+/* Image Post Type */
+.pc-img{width:100%;display:block;}
+.pc-caption{padding:12px 16px;font-size:.85rem;line-height:1.5;color:var(--c6);}
 
-    /* ---- WRITE SCREEN ---- */
-    #screen-write {
-      min-height: 100vh;
-      padding-top: 80px;
-      justify-content: center;
-    }
-    .write-card {
-      width: 100%;
-      max-width: 640px;
-      margin: 24px;
-      padding: 48px 40px;
-      background: var(--white);
-      border: 1.5px solid var(--light-gray);
-      border-radius: 24px;
-      box-shadow: 0 4px 40px var(--shadow);
-    }
-    .write-greeting {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 14px;
-      border-radius: 99px;
-      background: var(--off-white);
-      border: 1px solid var(--light-gray);
-      font-size: 0.78rem;
-      color: var(--dark-gray);
-      margin-bottom: 24px;
-    }
-    .write-greeting-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--black);
-    }
-    .note-label {
-      font-size: 0.65rem;
-      font-weight: 500;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--mid-gray);
-      margin-bottom: 10px;
-    }
-    .note-box-title {
-      font-family: 'Playfair Display', serif;
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: var(--black);
-      margin-bottom: 14px;
-    }
-    .note-textarea {
-      width: 100%;
-      min-height: 200px;
-      padding: 20px;
-      border: 2px solid var(--black);
-      border-radius: 16px;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.95rem;
-      line-height: 1.7;
-      color: var(--black);
-      background: var(--off-white);
-      outline: none;
-      resize: vertical;
-      transition: box-shadow 0.25s, background 0.25s;
-    }
-    .note-textarea:focus {
-      background: var(--white);
-      box-shadow: 0 0 0 4px rgba(0,0,0,0.06);
-    }
-    .note-textarea::placeholder { color: var(--mid-gray); }
-    .write-actions {
-      display: flex;
-      gap: 12px;
-      margin-top: 24px;
-    }
-    .char-count {
-      font-size: 0.75rem;
-      color: var(--mid-gray);
-      text-align: right;
-      margin-top: 8px;
-    }
-    .btn-disabled {
-      opacity: 0.35;
-      cursor: not-allowed;
-      pointer-events: none;
-    }
+/* Actions & Comments */
+.pc-actions{display:flex;gap:16px;padding:10px 16px;border-top:1px solid rgba(0,0,0,.04);}
+.act-btn{background:none;border:none;display:inline-flex;align-items:center;gap:6px;font-family:inherit;font-size:.75rem;font-weight:600;color:var(--c5);cursor:pointer;transition:color .2s;}
+.act-btn:hover{color:var(--c7);}
+.act-btn.liked{color:#e03131;}
+.act-btn svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;transition:transform .2s var(--spring);}
+.act-btn.liked svg{fill:#e03131;stroke:#e03131;transform:scale(1.15);}
 
-    /* ---- LIST SCREEN ---- */
-    #screen-list {
-      min-height: 100vh;
-      padding-top: 80px;
-    }
-    .list-inner {
-      width: 100%;
-      max-width: 700px;
-      margin: auto;
-      padding: 60px 24px 80px;
-    }
-    .list-header {
-      margin-bottom: 40px;
-    }
-    .list-header .form-step-label { margin-bottom: 10px; }
-    .list-title {
-      font-family: 'Playfair Display', serif;
-      font-size: 2.4rem;
-      font-weight: 700;
-      color: var(--black);
-      margin-bottom: 6px;
-    }
-    .list-count {
-      font-size: 0.85rem;
-      color: var(--mid-gray);
-    }
+.pc-comments{padding:0 16px 16px;background:rgba(0,0,0,.01);}
+.cmt-list{display:flex;flex-direction:column;gap:10px;margin-bottom:12px;}
+.cmt-item{display:flex;gap:8px;}
+.cmt-av{width:24px;height:24px;border-radius:50%;background-size:cover;background-position:center;background-color:var(--c3);flex-shrink:0;}
+.cmt-body{background:#fff;border:1px solid rgba(0,0,0,.05);padding:8px 12px;border-radius:4px 12px 12px 12px;font-size:.8rem;line-height:1.4;}
+.cmt-name{font-weight:700;font-size:.7rem;margin-bottom:2px;}
+.reply-row{display:flex;gap:8px;}
+.rep-in{flex:1;padding:8px 12px;border:1.5px solid rgba(0,0,0,.1);border-radius:20px;font-size:.8rem;outline:none;font-family:inherit;}
+.rep-in:focus{border-color:var(--c7);}
+.rep-btn{width:34px;height:34px;border-radius:50%;background:var(--c7);color:#fff;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;}
 
-    .notes-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
+/* MODAL CROP */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s;backdrop-filter:blur(5px);}
+.modal-bg.show{opacity:1;pointer-events:all;}
+.modal{background:#fff;border-radius:20px;padding:24px;width:min(90vw,400px);box-shadow:0 10px 40px rgba(0,0,0,.2);}
+.crop-area{position:relative;width:100%;height:300px;background:#111;margin-bottom:16px;border-radius:12px;overflow:hidden;touch-action:none;}
+.crop-area img{width:100%;height:100%;object-fit:contain;pointer-events:none;}
+.crop-sel{position:absolute;border:2px solid #fff;box-shadow:0 0 0 9999px rgba(0,0,0,.5);cursor:move;width:100px;height:100px;top:50px;left:50px;}
+.crop-hnd{position:absolute;width:12px;height:12px;background:#fff;border-radius:50%;}
 
-    .note-card {
-      background: var(--white);
-      border: 1.5px solid var(--light-gray);
-      border-radius: 18px;
-      padding: 28px 32px;
-      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
-                  box-shadow 0.25s,
-                  border-color 0.25s;
-      animation: slideIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
-      cursor: default;
-    }
-    .note-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 12px 40px var(--shadow-lg);
-      border-color: var(--dark-gray);
-    }
-    .note-card-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 14px;
-    }
-    .note-author {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .author-avatar {
-      width: 34px;
-      height: 34px;
-      border-radius: 50%;
-      background: var(--black);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.75rem;
-      font-weight: 700;
-      color: var(--white);
-      letter-spacing: 0.04em;
-      flex-shrink: 0;
-    }
-    .author-info {}
-    .author-name {
-      font-size: 0.88rem;
-      font-weight: 500;
-      color: var(--black);
-    }
-    .note-time {
-      font-size: 0.72rem;
-      color: var(--mid-gray);
-    }
-    .note-text {
-      font-size: 0.92rem;
-      line-height: 1.75;
-      color: var(--dark-gray);
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-    .empty-state {
-      text-align: center;
-      padding: 80px 24px;
-    }
-    .empty-icon {
-      font-size: 3rem;
-      margin-bottom: 16px;
-      opacity: 0.25;
-    }
-    .empty-title {
-      font-family: 'Playfair Display', serif;
-      font-size: 1.4rem;
-      color: var(--dark-gray);
-      margin-bottom: 8px;
-    }
-    .empty-sub {
-      font-size: 0.85rem;
-      color: var(--mid-gray);
-    }
-
-    /* ---- DIVIDER ---- */
-    .divider {
-      width: 48px;
-      height: 2px;
-      background: var(--light-gray);
-      margin: 32px 0;
-    }
-
-    /* ---- TOAST ---- */
-    #toast {
-      position: fixed;
-      bottom: 32px;
-      left: 50%;
-      transform: translateX(-50%) translateY(20px);
-      background: var(--black);
-      color: var(--white);
-      padding: 14px 24px;
-      border-radius: 99px;
-      font-size: 0.85rem;
-      font-weight: 500;
-      z-index: 9000;
-      opacity: 0;
-      transition: opacity 0.3s, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-      white-space: nowrap;
-    }
-    #toast.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
-
-    /* ---- LOADER ---- */
-    .loader {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      padding: 60px;
-    }
-    .loader-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--black);
-      animation: bounce 0.9s ease-in-out infinite;
-    }
-    .loader-dot:nth-child(2) { animation-delay: 0.15s; }
-    .loader-dot:nth-child(3) { animation-delay: 0.3s; }
-
-    /* ---- KEYFRAMES ---- */
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes slideIn {
-      from { opacity: 0; transform: translateY(16px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes bounce {
-      0%, 80%, 100% { transform: translateY(0); }
-      40% { transform: translateY(-10px); }
-    }
-
-    /* ---- BACK BUTTON ---- */
-    .back-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.8rem;
-      color: var(--mid-gray);
-      cursor: pointer;
-      transition: color 0.2s;
-      border: none;
-      background: none;
-      font-family: 'DM Sans', sans-serif;
-      padding: 0;
-      margin-bottom: 12px;
-    }
-    .back-btn:hover { color: var(--black); }
-
-    /* ---- FOOTER DECORATION ---- */
-    .home-deco {
-      position: fixed;
-      bottom: -120px;
-      right: -80px;
-      width: 400px;
-      height: 400px;
-      border-radius: 50%;
-      border: 60px solid var(--light-gray);
-      opacity: 0.5;
-      pointer-events: none;
-    }
-  </style>
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--c7);color:#fff;padding:10px 20px;border-radius:99px;font-size:.8rem;font-weight:600;z-index:9999;opacity:0;transition:all .3s var(--spring);pointer-events:none;display:flex;align-items:center;gap:8px;box-shadow:0 8px 24px rgba(0,0,0,.2);}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
 </head>
 <body>
+<canvas id="bg-anim"></canvas>
 
-<!-- TOP BAR -->
 <div class="topbar">
-  <div class="topbar-logo" onclick="goHome()">Pesan Digital</div>
-</div>
-
-<!-- HOME SCREEN -->
-<div class="screen active" id="screen-home">
-  <div class="home-inner">
-    <div class="home-label">Platform Berbagi Pikiran</div>
-    <h1 class="home-title">Pesan<span>Digital.</span></h1>
-    <p class="home-desc">Tulis apa yang ada di pikiranmu. Bagikan ke dunia. Baca pesan dari orang-orang di sekitarmu.</p>
-    <div class="home-buttons">
-      <button class="btn-primary" onclick="goToName()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-        Tulis Pesan
-      </button>
-      <button class="btn-secondary" onclick="goToList()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
-        Lihat Pesan Buatan Orang
-      </button>
-    </div>
+  <div class="tb-l" onclick="goHome()">
+    <div class="tb-ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
+    <span class="tb-nm">Pesan Digital</span>
   </div>
-  <div class="home-deco"></div>
-</div>
-
-<!-- NAME SCREEN -->
-<div class="screen" id="screen-name">
-  <div class="form-card">
-    <button class="back-btn" onclick="goHome()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-      Kembali
-    </button>
-    <div class="divider" style="margin:16px 0 24px"></div>
-    <div class="form-step-label">Langkah 1 dari 2</div>
-    <h2 class="form-title">Siapa namamu?</h2>
-    <p class="form-subtitle">Nama ini akan ditampilkan bersama pesanmu.</p>
-    <div class="input-wrap">
-      <input class="input-field" id="name-input" type="text" placeholder="Masukkan namamu..." maxlength="50" autocomplete="off" />
-    </div>
-    <button class="btn-primary" id="name-submit-btn" onclick="submitName()">
-      Lanjut
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-    </button>
+  <div class="tb-user" id="tb-user-info" style="display:none" onclick="logout()">
+    <div class="tb-uname" id="tb-uname">Nama</div>
+    <div class="tb-av" id="tb-av"></div>
   </div>
 </div>
 
-<!-- WRITE SCREEN -->
-<div class="screen" id="screen-write">
-  <div class="write-card">
-    <button class="back-btn" onclick="goToName()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-      Kembali
-    </button>
-    <div class="divider" style="margin:16px 0 24px"></div>
-    <div class="write-greeting" id="write-greeting">
-      <div class="write-greeting-dot"></div>
-      <span id="greeting-name">Halo, Anon!</span>
-    </div>
-    <div class="form-step-label">Langkah 2 dari 2</div>
-    <div class="note-box-title">Masukkan Pesanmu!</div>
-    <textarea class="note-textarea" id="note-textarea" placeholder="Tuliskan apa pun yang ada di pikiranmu..." maxlength="1000" oninput="onNoteInput()"></textarea>
-    <div class="char-count"><span id="char-num">0</span> / 1000</div>
-    <div class="write-actions">
-      <button class="btn-secondary btn-sm" onclick="goHome()" style="flex:1">Batal</button>
-      <button class="btn-primary btn-sm btn-disabled" id="submit-note-btn" onclick="submitNote()" style="flex:2">
-        Kirim Pesan
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-      </button>
+<div class="screen active" id="screen-login">
+  <div class="page" style="display:flex;flex-direction:column;justify-content:center;min-height:80vh;">
+    <div class="fcard" style="text-align:center;">
+      <div class="fcard-h">Selamat Datang</div>
+      <div class="fcard-sub">Buat profilmu sebelum mulai berbagi cerita.</div>
+      
+      <div class="av-up-zone" id="av-zone" onclick="document.getElementById('av-input').click()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--c4)" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <img id="av-preview" src=""/>
+      </div>
+      <input type="file" id="av-input" accept="image/*" style="display:none" onchange="handleAvUpload(this)"/>
+      <div style="font-size:.65rem;color:var(--c4);margin-top:-10px;margin-bottom:20px;">Klik untuk atur foto profil (opsional)</div>
+
+      <input class="finput" id="login-nm" type="text" placeholder="Masukkan namamu..." maxlength="30" style="text-align:center;"/>
+      <button class="btn btn-solid btn-full" onclick="doLogin()">Masuk <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
     </div>
   </div>
 </div>
 
-<!-- LIST SCREEN -->
-<div class="screen" id="screen-list">
-  <div class="list-inner">
-    <button class="back-btn" onclick="goHome()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-      Kembali ke Menu
-    </button>
-    <div class="list-header" style="margin-top:20px">
-      <div class="form-step-label">Komunitas</div>
-      <h2 class="list-title">Pesan dari Semua Orang</h2>
-      <div class="list-count" id="list-count">Memuat...</div>
+<div class="screen" id="screen-home">
+  <div class="page">
+    <div style="margin-bottom:24px;">
+      <h1 style="font-size:1.8rem;line-height:1.2;letter-spacing:-.02em;">Apa yang ingin<br>kamu bagikan hari ini?</h1>
     </div>
-    <div class="notes-grid" id="notes-grid">
-      <div class="loader">
-        <div class="loader-dot"></div>
-        <div class="loader-dot"></div>
-        <div class="loader-dot"></div>
+
+    <div class="home-opts">
+      <div class="opt-card" onclick="go('screen-text')">
+        <div class="opt-ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg></div>
+        <div class="opt-t">Status Teks</div>
+        <div class="opt-p">Tulis kutipan dengan background estetik.</div>
+      </div>
+      <div class="opt-card" onclick="go('screen-image')">
+        <div class="opt-ico" style="background:#444;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
+        <div class="opt-t">Posting Gambar</div>
+        <div class="opt-p">Upload, coret, dan tambah teks di gambar.</div>
+      </div>
+    </div>
+
+    <div class="fcard" style="padding:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div class="fcard-h" style="margin:0;font-size:1.1rem;">Linimasa</div>
+        <button class="btn btn-out" style="padding:6px 12px;font-size:.7rem;" onclick="goToList()">Lihat Semua <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+      </div>
+      <div style="font-size:.8rem;color:var(--c5);">Lihat apa yang dibagikan oleh orang lain di komunitas ini.</div>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="screen-text">
+  <div class="page">
+    <button class="btn btn-ghost" style="padding:0;margin-bottom:16px;" onclick="goHome()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg> Kembali</button>
+    <div class="fcard">
+      <div class="fcard-h">Status Teks</div>
+      
+      <label class="flabel">Pilih Background</label>
+      <div class="bg-opts" id="bg-opts">
+        </div>
+
+      <div class="text-prev-box" id="tp-box" style="background:linear-gradient(135deg,#ff9a9e,#fecfef);">
+        <textarea id="txt-in" placeholder="Tulis sesuatu yang bermakna..."></textarea>
+      </div>
+      
+      <button class="btn btn-solid btn-full" onclick="postText()">Bagikan Teks <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="screen-image">
+  <div class="page">
+    <button class="btn btn-ghost" style="padding:0;margin-bottom:16px;" onclick="goHome()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg> Kembali</button>
+    
+    <div class="fcard" style="padding:20px;">
+      <div class="tools-row" id="img-setup-tools">
+        <button class="btn btn-out btn-full" onclick="document.getElementById('base-img-in').click()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> Upload Gambar Utama</button>
+        <input type="file" id="base-img-in" accept="image/*" style="display:none" onchange="loadBaseImg(this)"/>
+      </div>
+
+      <div id="img-editor-ui" style="display:none;">
+        <div class="tools-row">
+          <button class="tb-btn on" id="tool-drag" onclick="setTool('drag')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M19 9l3 3-3 3M9 19l3 3 3-3M2 12h20M12 2v20"/></svg> Geser</button>
+          <button class="tb-btn" id="tool-draw" onclick="setTool('draw')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg> Coret</button>
+          <button class="tb-btn" onclick="addCanvasText()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg> Teks</button>
+          
+          <div class="color-picker" id="c-picker" style="display:none;">
+            <div class="c-dot on" style="background:#e03131;" onclick="setDrawColor('#e03131',this)"></div>
+            <div class="c-dot" style="background:#1971c2;" onclick="setDrawColor('#1971c2',this)"></div>
+            <div class="c-dot" style="background:#2f9e44;" onclick="setDrawColor('#2f9e44',this)"></div>
+            <div class="c-dot" style="background:#f59f00;" onclick="setDrawColor('#f59f00',this)"></div>
+            <div class="c-dot" style="background:#fff;" onclick="setDrawColor('#ffffff',this)"></div>
+            <div class="c-dot" style="background:#000;" onclick="setDrawColor('#000000',this)"></div>
+          </div>
+        </div>
+
+        <div class="canvas-wrap" id="cw">
+          <canvas id="editor-canvas"></canvas>
+        </div>
+
+        <label class="flabel">Caption / Keterangan</label>
+        <textarea class="caption-area" id="img-caption" placeholder="Tulis sesuatu tentang gambar ini..."></textarea>
+        
+        <button class="btn btn-solid btn-full" onclick="postImage()">Bagikan Gambar <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- TOAST -->
-<div id="toast"></div>
+<div class="screen" id="screen-list">
+  <div class="page">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <button class="btn btn-ghost" style="padding:0;" onclick="goHome()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg> Beranda</button>
+      <div style="font-size:1.1rem;font-weight:700;">Linimasa</div>
+    </div>
+    
+    <div class="feed-grid" id="feed-grid">
+      </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="crop-modal">
+  <div class="modal">
+    <div class="fcard-h" style="font-size:1.1rem;margin-bottom:12px;">Sesuaikan Foto Profil</div>
+    <div class="crop-area" id="crop-area">
+      <img id="crop-img" src=""/>
+      <div class="crop-sel" id="crop-sel">
+        <div class="crop-hnd" style="top:-6px;left:-6px;cursor:nwse-resize" data-pos="tl"></div>
+        <div class="crop-hnd" style="top:-6px;right:-6px;cursor:nesw-resize" data-pos="tr"></div>
+        <div class="crop-hnd" style="bottom:-6px;left:-6px;cursor:nesw-resize" data-pos="bl"></div>
+        <div class="crop-hnd" style="bottom:-6px;right:-6px;cursor:nwse-resize" data-pos="br"></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-ghost btn-full" onclick="closeCrop()">Batal</button>
+      <button class="btn btn-solid btn-full" onclick="applyCrop()">Terapkan</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+  <span id="toast-msg">Notif</span>
+</div>
 
 <script>
-  // =====================
-  // STORAGE (using window.storage if available, else localStorage fallback for standalone HTML)
-  // =====================
-  const STORAGE_KEY = 'pesan-digital-pesans';
-
-  async function loadNotes() {
-    try {
-      if (window.storage) {
-        const result = await window.storage.get(STORAGE_KEY, true);
-        return result ? JSON.parse(result.value) : [];
-      } else {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        return raw ? JSON.parse(raw) : [];
-      }
-    } catch { return []; }
-  }
-
-  async function saveNotes(notes) {
-    try {
-      if (window.storage) {
-        await window.storage.set(STORAGE_KEY, JSON.stringify(notes), true);
-      } else {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
-      }
-    } catch(e) { console.error(e); }
-  }
-
-  // =====================
-  // SCREEN NAVIGATION
-  // =====================
-  let currentScreen = 'screen-home';
-
-  function showScreen(id) {
-    const prev = document.getElementById(currentScreen);
-    const next = document.getElementById(id);
-
-    if (prev) {
-      prev.classList.remove('visible');
-      setTimeout(() => {
-        prev.classList.remove('active');
-      }, 500);
-    }
-
-    currentScreen = id;
-    next.classList.add('active');
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        next.classList.add('visible');
-      });
+/* ══════ BACKGROUND ANIMATION ══════ */
+(function(){
+  const cv=document.getElementById('bg-anim'),cx=cv.getContext('2d');
+  let W,H,t=0;
+  function rz(){W=cv.width=innerWidth;H=cv.height=innerHeight;}
+  function draw(){
+    cx.clearRect(0,0,W,H);
+    const tt=t*.002;
+    [[W*.2,H*.2,W*.6,'rgba(200,200,210,0.3)'],[W*.8,H*.8,W*.5,'rgba(210,200,200,0.2)']].forEach(([x,y,r,c])=>{
+      const gx=x+Math.sin(tt)*50,gy=y+Math.cos(tt)*50;
+      const gr=cx.createRadialGradient(gx,gy,0,gx,gy,r);
+      gr.addColorStop(0,c);gr.addColorStop(1,'rgba(255,255,255,0)');
+      cx.fillStyle=gr;cx.fillRect(0,0,W,H);
     });
-
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    t++;requestAnimationFrame(draw);
   }
+  rz();draw();window.addEventListener('resize',rz);
+})();
 
-  function goHome() {
-    showScreen('screen-home');
+/* ══════ STATE & DB ══════ */
+const DB_KEY='pesan-digital-v6';
+let currentUser=null; // {name, avatarData}
+
+async function getPosts(){try{const r=localStorage.getItem(DB_KEY);return r?JSON.parse(r):[]}catch{return[]}}
+async function savePosts(l){localStorage.setItem(DB_KEY,JSON.stringify(l));}
+
+function toast(m){document.getElementById('toast-msg').textContent=m;const t=document.getElementById('toast');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
+function escapeHTML(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function fmtTime(iso){try{const d=new Date(iso);return d.toLocaleDateString('id-ID',{month:'short',day:'numeric'})+' · '+d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})}catch{return''}}
+
+/* ══════ NAVIGATION ══════ */
+let curScreen='';
+function go(id){
+  if(curScreen){const p=document.getElementById(curScreen);p.classList.remove('visible');setTimeout(()=>p.classList.remove('active'),300);}
+  curScreen=id;const n=document.getElementById(id);n.scrollTop=0;n.style.opacity='0';n.style.transform='translateY(10px)';
+  n.classList.add('active');requestAnimationFrame(()=>requestAnimationFrame(()=>n.classList.add('visible')));
+}
+
+function initApp(){
+  const saved=localStorage.getItem('pesan-user');
+  if(saved){
+    currentUser=JSON.parse(saved);
+    setupTopBar();
+    go('screen-home');
+  } else {
+    go('screen-login');
   }
+}
 
-  function goToName() {
-    showScreen('screen-name');
-    setTimeout(() => {
-      document.getElementById('name-input').focus();
-    }, 600);
+function goHome(){go('screen-home');}
+function goToList(){go('screen-list');renderFeed();}
+
+/* ══════ LOGIN / PROFILE ══════ */
+let tempAvatar=null;
+function handleAvUpload(inp){
+  const f=inp.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{
+    document.getElementById('crop-img').src=e.target.result;
+    document.getElementById('crop-modal').classList.add('show');
+    setupAvCrop();
+  };
+  r.readAsDataURL(f);
+}
+
+// Simple crop logic for avatar
+let cState={x:10,y:10,s:80,drag:false,rsz:null};
+function setupAvCrop(){cState={x:10,y:10,s:80};updCropSel();}
+function updCropSel(){const s=document.getElementById('crop-sel');s.style.left=cState.x+'%';s.style.top=cState.y+'%';s.style.width=cState.s+'%';s.style.height=cState.s+'%';}
+function closeCrop(){document.getElementById('crop-modal').classList.remove('show');}
+function applyCrop(){
+  const img=document.getElementById('crop-img');
+  const iw=img.naturalWidth,ih=img.naturalHeight;
+  const min=Math.min(iw,ih); // make it square based on selection
+  const cx=(cState.x/100)*iw,cy=(cState.y/100)*ih,cs=(cState.s/100)*min;
+  const cv=document.createElement('canvas');cv.width=150;cv.height=150; // final av size
+  cv.getContext('2d').drawImage(img,cx,cy,cs,cs,0,0,150,150);
+  tempAvatar=cv.toDataURL('image/jpeg',0.8);
+  const z=document.getElementById('av-zone');
+  z.classList.add('has-img');
+  document.getElementById('av-preview').src=tempAvatar;
+  closeCrop();
+}
+
+// Bind crop events
+const cArea=document.getElementById('crop-area');
+const cSel=document.getElementById('crop-sel');
+function getCPos(e){const r=cArea.getBoundingClientRect(),t=e.touches?e.touches[0]:e;return{x:(t.clientX-r.left)/r.width*100,y:(t.clientY-r.top)/r.height*100}}
+cSel.onmousedown=cSel.ontouchstart=e=>{e.preventDefault();cState.drag=true;const p=getCPos(e);cState.ox=p.x-cState.x;cState.oy=p.y-cState.y;};
+const cmm=e=>{
+  if(!cState.drag)return; e.preventDefault(); const p=getCPos(e);
+  cState.x=Math.max(0,Math.min(100-cState.s,p.x-cState.ox));
+  cState.y=Math.max(0,Math.min(100-cState.s,p.y-cState.oy));
+  updCropSel();
+};
+const cmu=()=>cState.drag=false;
+window.addEventListener('mousemove',cmm);window.addEventListener('touchmove',cmm,{passive:false});
+window.addEventListener('mouseup',cmu);window.addEventListener('touchend',cmu);
+
+function doLogin(){
+  const nm=document.getElementById('login-nm').value.trim();
+  if(!nm){toast('Nama harus diisi!');return;}
+  currentUser={name:nm, avatar:tempAvatar};
+  localStorage.setItem('pesan-user',JSON.stringify(currentUser));
+  setupTopBar();
+  toast('Selamat datang, '+nm+'!');
+  goHome();
+}
+
+function setupTopBar(){
+  const u=document.getElementById('tb-user-info');
+  u.style.display='flex';
+  document.getElementById('tb-uname').textContent=currentUser.name;
+  if(currentUser.avatar) document.getElementById('tb-av').style.backgroundImage=`url(${currentUser.avatar})`;
+  else document.getElementById('tb-av').innerHTML=`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px">${currentUser.name[0].toUpperCase()}</div>`;
+}
+function logout(){
+  if(confirm('Keluar / Ganti Akun?')){
+    localStorage.removeItem('pesan-user');
+    currentUser=null;
+    document.getElementById('tb-user-info').style.display='none';
+    document.getElementById('login-nm').value='';
+    tempAvatar=null;
+    document.getElementById('av-zone').classList.remove('has-img');
+    go('screen-login');
   }
+}
 
-  function goToList() {
-    showScreen('screen-list');
-    renderNotes();
-  }
+/* ══════ TEXT POST EDITOR ══════ */
+const BGS = [
+  'linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%)',
+  'linear-gradient(120deg, #a1c4fd 0%, #c2e9fb 100%)',
+  'linear-gradient(120deg, #d4fc79 0%, #96e6a1 100%)',
+  'linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%)',
+  'linear-gradient(to top, #cfd9df 0%, #e2ebf0 100%)',
+  'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  '#2a2a2a'
+];
+let activeBg = BGS[0];
+function setupTextBgs(){
+  const c=document.getElementById('bg-opts');
+  c.innerHTML='';
+  BGS.forEach((bg,i)=>{
+    const b=document.createElement('div');
+    b.className='bg-btn'+(i===0?' on':'');
+    b.style.background=bg;
+    b.onclick=()=>{
+      document.querySelectorAll('.bg-btn').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');
+      activeBg=bg;
+      document.getElementById('tp-box').style.background=bg;
+    };
+    c.appendChild(b);
+  });
+}
+setupTextBgs();
 
-  // Init home visible
-  setTimeout(() => {
-    document.getElementById('screen-home').classList.add('visible');
-  }, 50);
+async function postText(){
+  const txt=document.getElementById('txt-in').value.trim();
+  if(!txt){toast('Teks kosong!');return;}
+  const post = {
+    id:'p_'+Date.now(), type:'text',
+    author:currentUser.name, avatar:currentUser.avatar, time:new Date().toISOString(),
+    text:txt, bg:activeBg, likes:0, replies:[]
+  };
+  const list=await getPosts();
+  list.unshift(post);
+  await savePosts(list);
+  document.getElementById('txt-in').value='';
+  toast('Status Teks dibagikan!');
+  goToList();
+}
 
-  // =====================
-  // NAME STEP
-  // =====================
-  let userName = '';
+/* ══════ IMAGE POST EDITOR (CANVAS) ══════ */
+let eCvs,eCtx,cw,ch;
+let baseImg=null;
+let drawPaths=[]; // {color, size, pts:[{x,y}]}
+let textLayers=[]; // {text, x, y, c, font}
+let currTool='drag'; // drag | draw
+let currColor='#e03131';
+let isDrawing=false;
+let draggingTxtIdx=-1;
 
-  document.getElementById('name-input').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') submitName();
+function loadBaseImg(inp){
+  const f=inp.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{
+    const im=new Image();
+    im.onload=()=>{
+      baseImg=im;
+      drawPaths=[]; textLayers=[];
+      document.getElementById('img-setup-tools').style.display='none';
+      document.getElementById('img-editor-ui').style.display='block';
+      initEditorCanvas();
+    };
+    im.src=e.target.result;
+  };
+  r.readAsDataURL(f);
+}
+
+function initEditorCanvas(){
+  const wr=document.getElementById('cw');
+  eCvs=document.getElementById('editor-canvas');
+  cw=wr.clientWidth;
+  const aspect=baseImg.naturalHeight/baseImg.naturalWidth;
+  ch=cw*aspect;
+  eCvs.width=cw; eCvs.height=ch;
+  eCtx=eCvs.getContext('2d');
+  eCtx.lineCap='round'; eCtx.lineJoin='round';
+  renderEditor();
+  attachEditorEvents();
+}
+
+function renderEditor(){
+  if(!eCtx)return;
+  eCtx.clearRect(0,0,cw,ch);
+  if(baseImg) eCtx.drawImage(baseImg,0,0,cw,ch);
+  
+  // Draws
+  drawPaths.forEach(p=>{
+    if(p.pts.length<2)return;
+    eCtx.beginPath();
+    eCtx.strokeStyle=p.c; eCtx.lineWidth=p.s;
+    eCtx.moveTo(p.pts[0].x, p.pts[0].y);
+    for(let i=1;i<p.pts.length;i++) eCtx.lineTo(p.pts[i].x, p.pts[i].y);
+    eCtx.stroke();
   });
 
-  function submitName() {
-    const val = document.getElementById('name-input').value.trim();
-    if (!val) {
-      shakeElement('name-input');
-      return;
-    }
-    userName = val;
-    document.getElementById('greeting-name').textContent = `Halo, ${userName}!`;
-    document.getElementById('note-textarea').value = '';
-    document.getElementById('char-num').textContent = '0';
-    document.getElementById('submit-note-btn').classList.add('btn-disabled');
-    showScreen('screen-write');
-    setTimeout(() => document.getElementById('note-textarea').focus(), 600);
+  // Texts
+  eCtx.textAlign='center'; eCtx.textBaseline='middle';
+  textLayers.forEach(t=>{
+    eCtx.font=`700 ${Math.max(16,cw*0.06)}px 'Montserrat',sans-serif`;
+    eCtx.fillStyle=t.c;
+    // outline
+    eCtx.strokeStyle='#fff'; eCtx.lineWidth=4;
+    eCtx.strokeText(t.text, t.x, t.y);
+    eCtx.fillText(t.text, t.x, t.y);
+  });
+}
+
+function setTool(t){
+  currTool=t;
+  document.getElementById('tool-drag').classList.toggle('on',t==='drag');
+  document.getElementById('tool-draw').classList.toggle('on',t==='draw');
+  document.getElementById('c-picker').style.display=t==='draw'?'flex':'none';
+}
+function setDrawColor(c,el){
+  currColor=c;
+  document.querySelectorAll('.c-dot').forEach(x=>x.classList.remove('on'));
+  el.classList.add('on');
+}
+function addCanvasText(){
+  const t=prompt('Masukkan teks:');
+  if(t){
+    textLayers.push({text:t, x:cw/2, y:ch/2, c:'#000'});
+    setTool('drag');
+    renderEditor();
   }
+}
 
-  // =====================
-  // NOTE STEP
-  // =====================
-  function onNoteInput() {
-    const val = document.getElementById('note-textarea').value;
-    document.getElementById('char-num').textContent = val.length;
-    const btn = document.getElementById('submit-note-btn');
-    if (val.trim().length > 0) {
-      btn.classList.remove('btn-disabled');
-    } else {
-      btn.classList.add('btn-disabled');
+function attachEditorEvents(){
+  function getP(e){const r=eCvs.getBoundingClientRect(),t=e.touches?e.touches[0]:e;return{x:(t.clientX-r.left)/r.width*cw,y:(t.clientY-r.top)/r.height*ch}}
+  
+  eCvs.onmousedown=eCvs.ontouchstart=e=>{
+    e.preventDefault();
+    const p=getP(e);
+    if(currTool==='draw'){
+      isDrawing=true;
+      drawPaths.push({c:currColor, s:cw*0.015, pts:[p]});
+    } else if(currTool==='drag'){
+      // Find text
+      draggingTxtIdx=-1;
+      for(let i=textLayers.length-1;i>=0;i--){
+        const t=textLayers[i]; eCtx.font=`700 ${cw*0.06}px sans-serif`;
+        const w=eCtx.measureText(t.text).width;
+        if(Math.abs(p.x-t.x)<w/2+10 && Math.abs(p.y-t.y)<20){
+          draggingTxtIdx=i; break;
+        }
+      }
     }
-  }
+  };
 
-  async function submitNote() {
-    const text = document.getElementById('note-textarea').value.trim();
-    if (!text) return;
-
-    const btn = document.getElementById('submit-note-btn');
-    btn.textContent = 'Menyimpan...';
-    btn.classList.add('btn-disabled');
-
-    const notes = await loadNotes();
-    const newNote = {
-      id: Date.now(),
-      author: userName,
-      text: text,
-      time: new Date().toISOString()
-    };
-    notes.unshift(newNote);
-    await saveNotes(notes);
-
-    showToast('Pesan berhasil dikirim! ✓');
-    goHome();
-    document.getElementById('name-input').value = '';
-    userName = '';
-  }
-
-  // =====================
-  // RENDER NOTES
-  // =====================
-  async function renderNotes() {
-    const grid = document.getElementById('notes-grid');
-    grid.innerHTML = `<div class="loader">
-      <div class="loader-dot"></div>
-      <div class="loader-dot"></div>
-      <div class="loader-dot"></div>
-    </div>`;
-
-    const notes = await loadNotes();
-    document.getElementById('list-count').textContent = notes.length === 0 ? 'Belum ada pesan' : `${notes.length} pesan tersimpan`;
-
-    if (notes.length === 0) {
-      grid.innerHTML = `<div class="empty-state">
-        <div class="empty-icon">📝</div>
-        <div class="empty-title">Belum ada pesan</div>
-        <div class="empty-sub">Jadilah yang pertama menulis pesan!</div>
-      </div>`;
-      return;
+  const mm=e=>{
+    if(currTool==='draw' && isDrawing){
+      e.preventDefault();
+      drawPaths[drawPaths.length-1].pts.push(getP(e));
+      renderEditor();
+    } else if(currTool==='drag' && draggingTxtIdx>-1){
+      e.preventDefault();
+      const p=getP(e);
+      textLayers[draggingTxtIdx].x=p.x; textLayers[draggingTxtIdx].y=p.y;
+      renderEditor();
     }
+  };
 
-    grid.innerHTML = '';
-    notes.forEach((note, i) => {
-      const card = document.createElement('div');
-      card.className = 'note-card';
-      card.style.animationDelay = `${i * 0.06}s`;
+  const mu=()=>{isDrawing=false;draggingTxtIdx=-1;};
+  window.addEventListener('mousemove',mm);window.addEventListener('touchmove',mm,{passive:false});
+  window.addEventListener('mouseup',mu);window.addEventListener('touchend',mu);
+}
 
-      const initials = note.author.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
-      const timeStr = formatTime(note.time);
+async function postImage(){
+  if(!baseImg)return;
+  const cap=document.getElementById('img-caption').value.trim();
+  const snap=eCvs.toDataURL('image/jpeg',0.85);
+  
+  const post = {
+    id:'p_'+Date.now(), type:'image',
+    author:currentUser.name, avatar:currentUser.avatar, time:new Date().toISOString(),
+    snapshot:snap, caption:cap, likes:0, replies:[]
+  };
+  const list=await getPosts();
+  list.unshift(post);
+  await savePosts(list);
+  
+  // reset
+  baseImg=null;
+  document.getElementById('img-setup-tools').style.display='flex';
+  document.getElementById('img-editor-ui').style.display='none';
+  document.getElementById('img-caption').value='';
+  toast('Gambar dibagikan!');
+  goToList();
+}
 
-      card.innerHTML = `
-        <div class="note-card-header">
-          <div class="note-author">
-            <div class="author-avatar">${initials}</div>
-            <div class="author-info">
-              <div class="author-name">${escapeHtml(note.author)}</div>
-              <div class="note-time">${timeStr}</div>
-            </div>
-          </div>
+/* ══════ FEED & COMMENTS ══════ */
+async function renderFeed(){
+  const grid=document.getElementById('feed-grid');
+  grid.innerHTML='<div style="text-align:center;padding:20px;font-size:.8rem;color:var(--c4)">Memuat linimasa...</div>';
+  const list=await getPosts();
+  if(!list.length){
+    grid.innerHTML=`<div class="fcard" style="text-align:center;color:var(--c5);font-size:.85rem;">Belum ada postingan.<br>Jadilah yang pertama membagikan cerita!</div>`;
+    return;
+  }
+  
+  grid.innerHTML='';
+  list.forEach(p=>{
+    const card=document.createElement('div');
+    card.className='post-card';
+    
+    // Header
+    const avStyle=p.avatar?`background-image:url(${p.avatar})`:'';
+    const avInit=p.avatar?'':p.author[0].toUpperCase();
+    let html = `
+      <div class="pc-hdr">
+        <div class="pc-av" style="${avStyle}">${p.avatar?'':`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;background:var(--c3);border-radius:50%">${avInit}</div>`}</div>
+        <div class="pc-info">
+          <div class="pc-name">${escapeHTML(p.author)}</div>
+          <div class="pc-time">${fmtTime(p.time)}</div>
         </div>
-        <div class="note-text">${escapeHtml(note.text)}</div>
-      `;
-      grid.appendChild(card);
-    });
-  }
+      </div>
+    `;
 
-  function formatTime(iso) {
-    try {
-      const d = new Date(iso);
-      return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-    } catch { return ''; }
-  }
+    // Content based on type
+    if(p.type==='text'){
+      html+=`<div class="pc-text-box" style="background:${p.bg}">${escapeHTML(p.text)}</div>`;
+    } else {
+      html+=`<img class="pc-img" src="${p.snapshot}" loading="lazy"/>`;
+      if(p.caption) html+=`<div class="pc-caption"><b>${escapeHTML(p.author)}</b> ${escapeHTML(p.caption)}</div>`;
+    }
 
-  function escapeHtml(str) {
-    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
+    // Actions
+    const isLiked = localStorage.getItem('liked_'+p.id)==='true';
+    html+=`
+      <div class="pc-actions">
+        <button class="act-btn ${isLiked?'liked':''}" onclick="toggleLike('${p.id}',this)">
+          <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> 
+          <span class="l-cnt">${p.likes||0}</span>
+        </button>
+        <button class="act-btn" onclick="toggleComments('${p.id}')">
+          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> 
+          Komentar (${p.replies?.length||0})
+        </button>
+      </div>
+    `;
 
-  // =====================
-  // HELPERS
-  // =====================
-  function showToast(msg) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 3000);
-  }
+    // Comments Section
+    let cmtHTML='';
+    if(p.replies){
+      p.replies.forEach(r=>{
+        const ravStyle=r.avatar?`background-image:url(${r.avatar})`:'';
+        const ravInit=r.avatar?'':r.author[0].toUpperCase();
+        cmtHTML+=`
+          <div class="cmt-item">
+            <div class="cmt-av" style="${ravStyle}">${r.avatar?'':`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px">${ravInit}</div>`}</div>
+            <div class="cmt-body"><div class="cmt-name">${escapeHTML(r.author)}</div>${escapeHTML(r.text)}</div>
+          </div>
+        `;
+      });
+    }
 
-  function shakeElement(id) {
-    const el = document.getElementById(id);
-    el.style.animation = 'none';
-    el.style.borderColor = '#888';
-    setTimeout(() => {
-      el.style.borderColor = '';
-      el.style.animation = '';
-    }, 600);
-    el.focus();
+    html+=`
+      <div class="pc-comments" id="cmt-sec-${p.id}" style="display:none;">
+        <div class="cmt-list" id="cmt-list-${p.id}">${cmtHTML}</div>
+        <div class="reply-row">
+          <input type="text" class="rep-in" id="rep-in-${p.id}" placeholder="Tambahkan komentar..."/>
+          <button class="rep-btn" onclick="sendReply('${p.id}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+        </div>
+      </div>
+    `;
+
+    card.innerHTML=html;
+    grid.appendChild(card);
+  });
+}
+
+async function toggleLike(id,btn){
+  const list=await getPosts();
+  const idx=list.findIndex(i=>i.id===id);
+  if(idx>-1){
+    const wasLiked = localStorage.getItem('liked_'+id)==='true';
+    if(wasLiked){
+      list[idx].likes = Math.max(0,(list[idx].likes||0)-1);
+      localStorage.removeItem('liked_'+id);
+      btn.classList.remove('liked');
+    } else {
+      list[idx].likes = (list[idx].likes||0)+1;
+      localStorage.setItem('liked_'+id,'true');
+      btn.classList.add('liked');
+    }
+    btn.querySelector('.l-cnt').textContent=list[idx].likes;
+    await savePosts(list);
   }
+}
+
+function toggleComments(id){
+  const e=document.getElementById('cmt-sec-'+id);
+  e.style.display=e.style.display==='none'?'block':'none';
+}
+
+async function sendReply(id){
+  const inp=document.getElementById('rep-in-'+id);
+  const txt=inp.value.trim();
+  if(!txt)return;
+  
+  const list=await getPosts();
+  const idx=list.findIndex(i=>i.id===id);
+  if(idx>-1){
+    if(!list[idx].replies) list[idx].replies=[];
+    list[idx].replies.push({author:currentUser.name, avatar:currentUser.avatar, text:txt, time:new Date().toISOString()});
+    await savePosts(list);
+    
+    // Quick DOM Update
+    const rList=document.getElementById('cmt-list-'+id);
+    const avStyle=currentUser.avatar?`background-image:url(${currentUser.avatar})`:'';
+    const avInit=currentUser.avatar?'':currentUser.name[0].toUpperCase();
+    rList.innerHTML+=`
+      <div class="cmt-item">
+        <div class="cmt-av" style="${avStyle}">${currentUser.avatar?'':`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px">${avInit}</div>`}</div>
+        <div class="cmt-body"><div class="cmt-name">${escapeHTML(currentUser.name)}</div>${escapeHTML(txt)}</div>
+      </div>
+    `;
+    inp.value='';
+    toast('Komentar ditambahkan!');
+  }
+}
+
+// Start app
+window.onload=initApp;
 </script>
 </body>
 </html>
